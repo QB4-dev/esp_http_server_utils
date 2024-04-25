@@ -1,23 +1,26 @@
+/*
+ * Copyright (c) 2024 <qb4.dev@gmail.com>
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ */
+
 #ifndef _ESP_HTTP_SERVER_FOTA_H_
 #define _ESP_HTTP_SERVER_FOTA_H_
 
 #include <esp_err.h>
 #include <esp_http_server.h>
 
-#include "esp_http_server_spiffs.h"
-
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 typedef struct {
-	bool skip_reboot;
-	void (*on_update_init)(void*);
-	void (*on_update_complete)(void*);
-	void (*on_update_failed)(void*);
-	void *arg;
-}esp_ota_actions_t;
+    bool skip_reboot;
+    void (*on_update_init)(void *);
+    void (*on_update_complete)(void *);
+    void (*on_update_failed)(void *);
+    void *arg;
+} esp_ota_actions_t;
 
 /**
  * @brief App info handler. Returns project information from esp_app_desc_t

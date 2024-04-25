@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2024 <qb4.dev@gmail.com>
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ */
+
 #ifndef _ESP_HTTP_SERVER_SPIFFS_H_
 #define _ESP_HTTP_SERVER_SPIFFS_H_
 
@@ -6,8 +12,7 @@
 #include <esp_http_server.h>
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 /**

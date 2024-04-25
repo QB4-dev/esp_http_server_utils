@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2024 <qb4.dev@gmail.com>
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ */
+
 #ifndef _HTTPD_SERVER_UPLOAD_H_
 #define _HTTPD_SERVER_UPLOAD_H_
 
@@ -5,12 +11,11 @@
 #include <esp_http_server.h>
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
-#define UPLOAD_BUF_LEN  2048
-#define BOUNDARY_LEN    70   //as described in RFC1341
+#define UPLOAD_BUF_LEN 2048
+#define BOUNDARY_LEN 70 //as described in RFC1341
 
 /**
  * @brief Find boundary string in request header

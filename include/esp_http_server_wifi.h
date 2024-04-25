@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2024 <qb4.dev@gmail.com>
+ *
+ * SPDX-License-Identifier: LGPL-2.1-or-later
+ */
+
 #ifndef _ESP_HTTP_SERVER_WIFI_H_
 #define _ESP_HTTP_SERVER_WIFI_H_
 
@@ -15,4 +21,4 @@ esp_err_t esp_httpd_wifi_handler(httpd_req_t *req);
 
 /**@}*/
 
-#endif  // _ESP_HTTP_SERVER_WIFI_H_
+#endif // _ESP_HTTP_SERVER_WIFI_H_
