@@ -10,41 +10,18 @@
 #include <esp_wifi.h>
 #include <tcpip_adapter.h>
 #include <sys/param.h>
-#include <cJSON.h>
 
 #include "include/esp_http_server_wifi.h"
+#include "include/esp_http_server_misc.h"
 
 #define DEFAULT_SCAN_LIST_SIZE 16
 
 static const char *TAG = "WiFi";
 
-#define CHECK_ARG(VAL)                  \
-    do {                                \
-        if (!(VAL))                     \
-            return ESP_ERR_INVALID_ARG; \
-    } while (0)
-
-static esp_err_t send_json_response(cJSON *js, httpd_req_t *req)
-{
-    CHECK_ARG(js);
-    CHECK_ARG(req);
-
-    char *js_txt = cJSON_Print(js);
-    cJSON_Delete(js);
-
-    httpd_resp_set_type(req, HTTPD_TYPE_JSON);
-    httpd_resp_send(req, js_txt, -1);
-    free(js_txt);
-    return ESP_OK;
-}
-
 static cJSON *ap_record_to_json(wifi_ap_record_t *ap_info)
 {
-    char   mac_buf[24];
+    char mac_buf[24];
     cJSON *js = cJSON_CreateObject();
-    if (!js)
-        return NULL;
-
     sprintf(mac_buf, MACSTR, MAC2STR(ap_info->bssid));
 
     cJSON_AddStringToObject(js, "bssid", mac_buf);
@@ -64,11 +41,8 @@ static cJSON *ap_record_to_json(wifi_ap_record_t *ap_info)
 
 static cJSON *ip_info_to_json(tcpip_adapter_ip_info_t *ip_info)
 {
-    char   buf[16];
+    char buf[16];
     cJSON *js = cJSON_CreateObject();
-
-    if (!js)
-        return NULL;
 
     sprintf(buf, IPSTR, IP2STR(&ip_info->ip));
     cJSON_AddStringToObject(js, "ip", buf);
@@ -85,10 +59,7 @@ static cJSON *ip_info_to_json(tcpip_adapter_ip_info_t *ip_info)
 static cJSON *get_wifi_ap_info(void)
 {
     tcpip_adapter_ip_info_t ip_info = { 0 };
-
     cJSON *js = cJSON_CreateObject();
-    if (!js)
-        return NULL;
 
     if (tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_AP, &ip_info) == ESP_OK)
         cJSON_AddItemToObject(js, "ip_info", ip_info_to_json(&ip_info));
@@ -99,13 +70,10 @@ static cJSON *get_wifi_ap_info(void)
 static cJSON *get_wifi_sta_info(void)
 {
     tcpip_adapter_ip_info_t ip_info = { 0 };
-    wifi_ap_record_t        ap_info = { 0 };
-    esp_err_t               rc;
+    wifi_ap_record_t ap_info = { 0 };
+    esp_err_t rc;
 
     cJSON *js = cJSON_CreateObject();
-    if (!js)
-        return NULL;
-
     if (tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_STA, &ip_info) == ESP_OK)
         cJSON_AddItemToObject(js, "ip_info", ip_info_to_json(&ip_info));
 
@@ -119,7 +87,6 @@ static cJSON *get_wifi_sta_info(void)
                             (rc == ESP_ERR_WIFI_CONN)          ? "not initialized" :
                             (rc == ESP_ERR_WIFI_NOT_CONNECT)   ? "disconnected" :
                                                                  "??");
-
     return js;
 }
 
@@ -152,11 +119,11 @@ static cJSON *wifi_config_to_json(void)
 
 static cJSON *wifi_scan_to_json(void)
 {
-    uint16_t         ap_num = DEFAULT_SCAN_LIST_SIZE;
-    uint16_t         ap_found = 0;
+    uint16_t ap_num = DEFAULT_SCAN_LIST_SIZE;
+    uint16_t ap_found = 0;
     wifi_ap_record_t ap_list[DEFAULT_SCAN_LIST_SIZE] = { 0 };
     wifi_ap_record_t ap_info = { 0 };
-    bool             connected;
+    bool connected;
 
     connected = (esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK);
 
@@ -165,11 +132,13 @@ static cJSON *wifi_scan_to_json(void)
     esp_wifi_scan_get_ap_records(&ap_num, ap_list);
     esp_wifi_scan_get_ap_num(&ap_found);
 
-    if (connected)
+    if (connected) {
+        /* reconnect device if was connected before */
         ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_connect());
+    }
 
-    ESP_LOGI(TAG, "Total APs scanned = %u", ap_found);
     cJSON *js = cJSON_CreateArray();
+    ESP_LOGI(TAG, "APs scanned = %u", ap_found);
     for (int i = 0; (i < DEFAULT_SCAN_LIST_SIZE) && (i < ap_found); i++) {
         ESP_LOGI(TAG, "\tSSID: %s \tch=%d rssi=%d", ap_list[i].ssid, ap_list[i].primary,
                  ap_list[i].rssi);
@@ -181,12 +150,12 @@ static cJSON *wifi_scan_to_json(void)
 static esp_err_t wifi_handle_connect_req(httpd_req_t *req)
 {
     char *req_data;
-    char  value[128];
-    int   bytes_recv = 0;
-    int   rc;
+    char value[128];
+    int bytes_recv = 0;
+    int rc;
 
     wifi_config_t wifi_config = { 0 };
-    wifi_mode_t   wifi_mode;
+    wifi_mode_t wifi_mode;
 
     esp_wifi_get_mode(&wifi_mode);
     if (wifi_mode == WIFI_MODE_AP)
@@ -227,9 +196,9 @@ esp_err_t esp_httpd_wifi_handler(httpd_req_t *req)
     CHECK_ARG(req);
 
     cJSON *js;
-    char  *url_query;
+    char *url_query;
     size_t qlen;
-    char   value[128];
+    char value[128];
 
     js = cJSON_CreateObject();
 
@@ -256,5 +225,5 @@ esp_err_t esp_httpd_wifi_handler(httpd_req_t *req)
     } else {
         cJSON_AddItemToObject(js, "data", wifi_info_to_json());
     }
-    return send_json_response(js, req);
+    return esp_httpd_resp_json(req, js);
 }

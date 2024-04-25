@@ -8,8 +8,8 @@
 #include <esp_system.h>
 #include <esp_log.h>
 #include <sys/param.h>
-#include <cJSON.h>
 
+#include "include/esp_http_server_misc.h"
 #include "esp_http_upload.h"
 
 static const char *TAG = "UPLOAD";
@@ -39,8 +39,8 @@ static bool get_boundary_str(const char *content, char *boundary)
 esp_err_t esp_http_get_boundary(httpd_req_t *req, char *boundary)
 {
     esp_err_t rc;
-    char     *buf;
-    size_t    buf_len = httpd_req_get_hdr_value_len(req, "Content-Type");
+    char *buf;
+    size_t buf_len = httpd_req_get_hdr_value_len(req, "Content-Type");
     if (buf_len == 0)
         return ESP_ERR_NOT_FOUND;
 
@@ -69,10 +69,10 @@ esp_err_t esp_http_get_boundary(httpd_req_t *req, char *boundary)
 
 int esp_http_upload_check_initial_boundary(httpd_req_t *req, char *boundary, size_t bytes_left)
 {
-    char     buf[BOUNDARY_LEN] = { 0 };
-    ssize_t  boundary_len = strlen(boundary);
+    char buf[BOUNDARY_LEN] = { 0 };
+    ssize_t boundary_len = strlen(boundary);
     uint32_t bytes_read = 0;
-    int32_t  recv;
+    int32_t recv;
 
     if (bytes_left < boundary_len)
         return -1;
@@ -102,10 +102,10 @@ int esp_http_upload_check_initial_boundary(httpd_req_t *req, char *boundary, siz
 int esp_http_upload_find_multipart_header_end(httpd_req_t *req, size_t bytes_left)
 {
     const char seq[] = "\r\n\r\n";
-    char       buf[4] = { 0 };
-    uint32_t   bytes_read = 0;
-    int32_t    recv;
-    uint8_t    match = 0;
+    char buf[4] = { 0 };
+    uint32_t bytes_read = 0;
+    int32_t recv;
+    uint8_t match = 0;
 
     //read byte by byte to find CRLF CRLF sequence
     while (bytes_left > 0) {
@@ -134,10 +134,10 @@ int esp_http_upload_find_multipart_header_end(httpd_req_t *req, size_t bytes_lef
 //receive and check final boundary
 int esp_http_upload_check_final_boundary(httpd_req_t *req, char *boundary, size_t bytes_left)
 {
-    char     buf[BOUNDARY_LEN + 2] = { 0 }; //additional '--' at the end
-    ssize_t  boundary_len = strlen(boundary);
+    char buf[BOUNDARY_LEN + 2] = { 0 }; //additional '--' at the end
+    ssize_t boundary_len = strlen(boundary);
     uint32_t bytes_read = 0;
-    int32_t  recv;
+    int32_t recv;
 
     while (bytes_left > 0) {
         recv = httpd_req_recv(req, buf, MIN(bytes_left, UPLOAD_BUF_LEN));
@@ -170,11 +170,5 @@ esp_err_t esp_http_upload_json_status(httpd_req_t *req, esp_err_t rc, int upload
     cJSON_AddStringToObject(js, "result", esp_err_to_name(rc));
     cJSON_AddStringToObject(js, "bytes_uploaded", buf);
 
-    char *js_txt = cJSON_Print(js);
-    cJSON_Delete(js);
-
-    httpd_resp_set_type(req, HTTPD_TYPE_JSON);
-    httpd_resp_send(req, js_txt, -1);
-    free(js_txt);
-    return ESP_OK;
+    return esp_httpd_resp_json(req, js);
 }

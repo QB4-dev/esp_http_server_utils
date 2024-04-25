@@ -14,9 +14,9 @@
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <cJSON.h>
 
 #include "include/esp_http_server_spiffs.h"
+#include "include/esp_http_server_misc.h"
 #include "esp_http_upload.h"
 
 static const char *TAG = "SPIFFS";
@@ -24,16 +24,11 @@ static const char *TAG = "SPIFFS";
 static cJSON *spiffs_file_list_to_json(const char *path)
 {
     struct dirent *de;
-    DIR           *dir = opendir(path);
+    DIR *dir = opendir(path);
     if (!dir)
         return NULL;
 
     cJSON *js_array = cJSON_CreateArray();
-    if (!js_array) {
-        closedir(dir);
-        return NULL;
-    }
-
     while (true) {
         de = readdir(dir);
         if (!de)
@@ -46,14 +41,14 @@ static cJSON *spiffs_file_list_to_json(const char *path)
 
 esp_err_t esp_httpd_spiffs_info_handler(httpd_req_t *req)
 {
-    char     *buf;
-    size_t    buf_len;
-    size_t    total = 0, used = 0;
+    char *buf;
+    size_t buf_len;
+    size_t total = 0, used = 0;
     esp_err_t rc = ESP_OK;
 
     const esp_vfs_spiffs_conf_t *esp_vfs_spiffs_conf = req->user_ctx;
     if (!esp_vfs_spiffs_conf) {
-        ESP_LOGE(TAG, "esp_vfs_spiffs_conf not found");
+        ESP_LOGE(TAG, "esp_vfs_spiffs_conf not set");
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -66,7 +61,7 @@ esp_err_t esp_httpd_spiffs_info_handler(httpd_req_t *req)
         if (httpd_req_get_url_query_str(req, buf, buf_len) == ESP_OK) {
             char param[32];
             if (httpd_query_key_value(buf, "remove", param, sizeof(param)) == ESP_OK) {
-                ESP_LOGI(TAG, "found URL query parameter -> remove=%s", param);
+                ESP_LOGI(TAG, "remove %s", param);
                 rc = unlink(param);
             }
         }
@@ -74,9 +69,6 @@ esp_err_t esp_httpd_spiffs_info_handler(httpd_req_t *req)
     }
 
     cJSON *js = cJSON_CreateObject();
-    if (!js)
-        return ESP_FAIL;
-
     esp_spiffs_info(esp_vfs_spiffs_conf->partition_label, &total, &used);
     cJSON_AddStringToObject(js, "result", esp_err_to_name(rc));
     cJSON_AddNumberToObject(js, "used", used);
@@ -84,22 +76,14 @@ esp_err_t esp_httpd_spiffs_info_handler(httpd_req_t *req)
     cJSON_AddNumberToObject(js, "percent", 100 * used / total);
     cJSON_AddItemToObject(js, "files", spiffs_file_list_to_json(esp_vfs_spiffs_conf->base_path));
 
-    char *js_txt = cJSON_Print(js);
-    cJSON_Delete(js);
-    if (!js_txt)
-        return ESP_FAIL;
-
-    ESP_ERROR_CHECK(httpd_resp_set_type(req, HTTPD_TYPE_JSON));
-    ESP_ERROR_CHECK(httpd_resp_send(req, js_txt, -1));
-    free(js_txt);
-    return ESP_OK;
+    return esp_httpd_resp_json(req, js);
 }
 
 esp_err_t esp_httpd_spiffs_file_upload_handler(httpd_req_t *req)
 {
-    char      boundary[BOUNDARY_LEN] = { 0 };
-    size_t    bytes_left = req->content_len;
-    int32_t   bytes_read = 0;
+    char boundary[BOUNDARY_LEN] = { 0 };
+    size_t bytes_left = req->content_len;
+    int32_t bytes_read = 0;
     esp_err_t rc;
 
     const char *upload_path = req->user_ctx;
@@ -133,13 +117,13 @@ esp_err_t esp_httpd_spiffs_file_upload_handler(httpd_req_t *req)
     }
 
     //now we have content data until end boundary
-    ssize_t  boundary_len = strlen(boundary);
-    ssize_t  final_boundary_len = boundary_len + 2;               // additional "--"
+    ssize_t boundary_len = strlen(boundary);
+    ssize_t final_boundary_len = boundary_len + 2;                // additional "--"
     uint32_t binary_size = bytes_left - (final_boundary_len + 4); //CRLF CRLF
     uint32_t bytes_written = 0;
     uint32_t to_read;
-    int32_t  recv;
-    size_t   wr;
+    int32_t recv;
+    size_t wr;
 
     if (binary_size == 0) {
         fclose(f);
@@ -197,9 +181,9 @@ esp_err_t esp_httpd_spiffs_file_upload_handler(httpd_req_t *req)
 
 esp_err_t esp_httpd_spiffs_image_upload_handler(httpd_req_t *req)
 {
-    char      boundary[BOUNDARY_LEN] = { 0 };
-    size_t    bytes_left = req->content_len;
-    int32_t   bytes_read = 0;
+    char boundary[BOUNDARY_LEN] = { 0 };
+    size_t bytes_left = req->content_len;
+    int32_t bytes_read = 0;
     esp_err_t rc;
 
     const esp_vfs_spiffs_conf_t *esp_vfs_spiffs_conf = req->user_ctx;
@@ -246,12 +230,12 @@ esp_err_t esp_httpd_spiffs_image_upload_handler(httpd_req_t *req)
         return esp_http_upload_json_status(req, ESP_ERR_INVALID_ARG, 0);
 
     //now we have content data until end boundary
-    ssize_t  boundary_len = strlen(boundary);
-    ssize_t  final_boundary_len = boundary_len + 2;               // additional "--"
+    ssize_t boundary_len = strlen(boundary);
+    ssize_t final_boundary_len = boundary_len + 2;                // additional "--"
     uint32_t binary_size = bytes_left - (final_boundary_len + 4); //CRLF CRLF
     uint32_t bytes_written = 0;
     uint32_t to_read;
-    int32_t  recv;
+    int32_t recv;
 
     if (binary_size == 0) {
         ESP_LOGE(TAG, "no file uploaded");

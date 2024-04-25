@@ -19,6 +19,4 @@ esp_err_t esp_httpd_wifi_handler(httpd_req_t *req);
 }
 #endif
 
-/**@}*/
-
 #endif // _ESP_HTTP_SERVER_WIFI_H_

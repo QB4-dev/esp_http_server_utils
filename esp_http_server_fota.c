@@ -12,6 +12,7 @@
 #include <cJSON.h>
 
 #include "include/esp_http_server_fota.h"
+#include "include/esp_http_server_misc.h"
 #include "esp_http_upload.h"
 
 static const char *TAG = "FOTA";
@@ -33,21 +34,15 @@ esp_err_t esp_httpd_app_info_handler(httpd_req_t *req)
     cJSON_AddStringToObject(js, "date", app_descr->date);
     cJSON_AddStringToObject(js, "idf_ver", app_descr->idf_ver);
 
-    char *js_txt = cJSON_Print(js);
-    cJSON_Delete(js);
-
-    httpd_resp_set_type(req, HTTPD_TYPE_JSON);
-    httpd_resp_send(req, js_txt, -1);
-    free(js_txt);
-    return ESP_OK;
+    return esp_httpd_resp_json(req, js);
 }
 
 esp_err_t esp_httpd_fota_handler(httpd_req_t *req)
 {
-    esp_ota_handle_t       update_handle;
+    esp_ota_handle_t update_handle;
     const esp_partition_t *update_partition;
-    esp_ota_actions_t     *ota_actions = req->user_ctx;
-    esp_err_t              ota_err;
+    esp_ota_actions_t *ota_actions = req->user_ctx;
+    esp_err_t ota_err;
 
     ESP_LOGI(TAG, "starting FOTA...");
 
@@ -75,8 +70,8 @@ esp_err_t esp_httpd_fota_handler(httpd_req_t *req)
     ESP_LOGI(TAG, "esp_ota_begin OK");
     ESP_LOGI(TAG, "please wait...");
 
-    char    boundary[BOUNDARY_LEN] = { 0 };
-    size_t  bytes_left = req->content_len;
+    char boundary[BOUNDARY_LEN] = { 0 };
+    size_t bytes_left = req->content_len;
     int32_t bytes_read = 0;
 
     ota_err = esp_http_get_boundary(req, boundary);
@@ -103,12 +98,12 @@ esp_err_t esp_httpd_fota_handler(httpd_req_t *req)
     }
 
     //now we have content data until end boundary with additional '--' at the end
-    ssize_t  boundary_len = strlen(boundary);
-    ssize_t  final_boundary_len = boundary_len + 2;               // additional "--"
+    ssize_t boundary_len = strlen(boundary);
+    ssize_t final_boundary_len = boundary_len + 2;                // additional "--"
     uint32_t binary_size = bytes_left - (final_boundary_len + 4); //CRLF CRLF
     uint32_t bytes_written = 0;
     uint32_t to_read;
-    int32_t  recv;
+    int32_t recv;
 
     if (binary_size == 0) {
         ESP_LOGE(TAG, "no file uploaded");
