@@ -140,17 +140,9 @@ esp_err_t esp_httpd_fota_handler(httpd_req_t *req)
         return esp_http_upload_json_status(req, ESP_ERR_NOT_FOUND, 0);
     }
 
-    //prepare buffer, keep in mind to free it before return call
-    char *buf = (char *)malloc(UPLOAD_BUF_LEN);
-    if (!buf) {
-        handle_ota_failed_action(ota_actions);
-        return esp_http_upload_json_status(req, ESP_ERR_NO_MEM, 0);
-    }
-
     // prepare partition
     update_partition = esp_ota_get_next_update_partition(NULL);
     if (!update_partition) {
-        free(buf);
         ESP_LOGE(TAG, "update part not found");
         handle_ota_failed_action(ota_actions);
         return esp_http_upload_json_status(req, ESP_FAIL, 0);
@@ -160,7 +152,6 @@ esp_err_t esp_httpd_fota_handler(httpd_req_t *req)
 
     ota_err = esp_ota_begin(update_partition, OTA_SIZE_UNKNOWN, &update_handle);
     if (ota_err != ESP_OK) {
-        free(buf);
         handle_ota_failed_action(ota_actions);
         ESP_LOGE(TAG, "esp_ota_begin failed: err=%d", ota_err);
         return esp_http_upload_json_status(req, ota_err, 0);
@@ -168,6 +159,13 @@ esp_err_t esp_httpd_fota_handler(httpd_req_t *req)
 
     ESP_LOGI(TAG, "esp_ota_begin OK");
     ESP_LOGI(TAG, "uploading firmware...");
+
+    //prepare buffer, keep in mind to free it before return call
+    char *buf = (char *)malloc(UPLOAD_BUF_LEN);
+    if (!buf) {
+        handle_ota_failed_action(ota_actions);
+        return esp_http_upload_json_status(req, ESP_ERR_NO_MEM, 0);
+    }
 
     while (bytes_written < binary_size) {
         if (bytes_left > UPLOAD_BUF_LEN)
@@ -215,7 +213,7 @@ esp_err_t esp_httpd_fota_handler(httpd_req_t *req)
         return esp_http_upload_json_status(req, ota_err, bytes_written);
     }
 
-#if 1
+#ifdef CONFIG_APP_UPDATE_CHECK_APP_NAME
     const esp_app_desc_t *app_descr = esp_ota_get_app_description();
     esp_app_desc_t update_descr;
 
@@ -225,9 +223,17 @@ esp_err_t esp_httpd_fota_handler(httpd_req_t *req)
                  update_descr.time);
     } else {
         ESP_LOGE(TAG, "get_partition_descr failed! err=0x%x %s", ota_err, esp_err_to_name(ota_err));
+        handle_ota_failed_action(ota_actions);
+        return esp_http_upload_json_status(req, ESP_ERR_IMAGE_INVALID, 0);
     }
 
-    //TODO do checks
+    if (strcmp(app_descr->project_name, update_descr.project_name) == 0) {
+        ESP_LOGI(TAG, "PROJECT_NAME: check OK");
+    } else {
+        ESP_LOGE(TAG, "update PROJECT_NAME != %s", app_descr->project_name);
+        handle_ota_failed_action(ota_actions);
+        return esp_http_upload_json_status(req, ESP_ERR_IMAGE_INVALID, 0);
+    }
 #endif
 
     ota_err = esp_ota_set_boot_partition(update_partition);

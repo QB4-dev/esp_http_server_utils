@@ -1,0 +1,7 @@
+menu "App update"
+
+    config APP_UPDATE_CHECK_APP_NAME
+        bool "Check PROJECT_NAME to be equal as running firmware image"
+        default n
+
+endmenu
