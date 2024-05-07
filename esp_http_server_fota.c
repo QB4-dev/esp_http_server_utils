@@ -213,7 +213,7 @@ esp_err_t esp_httpd_fota_handler(httpd_req_t *req)
         return esp_http_upload_json_status(req, ota_err, bytes_written);
     }
 
-#ifdef CONFIG_APP_UPDATE_CHECK_APP_NAME
+#ifdef CONFIG_APP_UPDATE_PROJECT_NAME
     const esp_app_desc_t *app_descr = esp_ota_get_app_description();
     esp_app_desc_t update_descr;
 
