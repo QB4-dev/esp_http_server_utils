@@ -1,7 +1,7 @@
-menu "App update"
+menu "HTTPD FOTA settings"
 
-    config APP_UPDATE_CHECK_APP_NAME
-        bool "Check PROJECT_NAME to be equal as running firmware image"
+    config APP_UPDATE_CHECK_PROJECT_NAME
+        bool "Check PROJECT_NAME to be same as on running firmware image"
         default n
 
 endmenu
