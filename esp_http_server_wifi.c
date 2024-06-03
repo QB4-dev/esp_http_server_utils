@@ -8,8 +8,18 @@
 #include <esp_system.h>
 #include <esp_log.h>
 #include <esp_wifi.h>
-#include <tcpip_adapter.h>
+#include <esp_netif.h>
 #include <sys/param.h>
+
+#if CONFIG_IDF_TARGET_ESP32
+#include <esp_mac.h>
+#endif
+
+#if CONFIG_IDF_TARGET_ESP8266
+#define esp_ip_info_t tcpip_adapter_ip_info_t
+#elif CONFIG_IDF_TARGET_ESP32
+#define esp_ip_info_t esp_netif_ip_info_t
+#endif
 
 #include "include/esp_http_server_wifi.h"
 #include "include/esp_http_server_misc.h"
@@ -39,7 +49,7 @@ static cJSON *ap_record_to_json(wifi_ap_record_t *ap_info)
     return js;
 }
 
-static cJSON *ip_info_to_json(tcpip_adapter_ip_info_t *ip_info)
+static cJSON *ip_info_to_json(esp_ip_info_t *ip_info)
 {
     char buf[16];
     cJSON *js = cJSON_CreateObject();
@@ -58,24 +68,40 @@ static cJSON *ip_info_to_json(tcpip_adapter_ip_info_t *ip_info)
 /* get wifi access point interface info */
 static cJSON *get_wifi_ap_info(void)
 {
-    tcpip_adapter_ip_info_t ip_info = { 0 };
+    esp_ip_info_t ip_info = { 0 };
     cJSON *js = cJSON_CreateObject();
 
+#if CONFIG_IDF_TARGET_ESP8266
     if (tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_AP, &ip_info) == ESP_OK)
         cJSON_AddItemToObject(js, "ip_info", ip_info_to_json(&ip_info));
+
+#elif CONFIG_IDF_TARGET_ESP32
+    esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_AP_DEF");
+
+    if (esp_netif_get_ip_info(netif, &ip_info) == ESP_OK)
+        cJSON_AddItemToObject(js, "ip_info", ip_info_to_json(&ip_info));
+#endif
     return js;
 }
 
 /* get wifi station interface info */
 static cJSON *get_wifi_sta_info(void)
 {
-    tcpip_adapter_ip_info_t ip_info = { 0 };
+    esp_ip_info_t ip_info = { 0 };
     wifi_ap_record_t ap_info = { 0 };
     esp_err_t rc;
 
     cJSON *js = cJSON_CreateObject();
+
+#if CONFIG_IDF_TARGET_ESP8266
     if (tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_STA, &ip_info) == ESP_OK)
         cJSON_AddItemToObject(js, "ip_info", ip_info_to_json(&ip_info));
+#elif CONFIG_IDF_TARGET_ESP32
+    esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+
+    if (esp_netif_get_ip_info(netif, &ip_info) == ESP_OK)
+        cJSON_AddItemToObject(js, "ip_info", ip_info_to_json(&ip_info));
+#endif
 
     rc = esp_wifi_sta_get_ap_info(&ap_info);
     if (rc == ESP_OK)
@@ -140,8 +166,7 @@ static cJSON *wifi_scan_to_json(void)
     cJSON *js = cJSON_CreateArray();
     ESP_LOGI(TAG, "APs scanned = %u", ap_found);
     for (int i = 0; (i < DEFAULT_SCAN_LIST_SIZE) && (i < ap_found); i++) {
-        ESP_LOGI(TAG, "\tSSID: %s \tch=%d rssi=%d", ap_list[i].ssid, ap_list[i].primary,
-                 ap_list[i].rssi);
+        ESP_LOGI(TAG, "\tSSID: %s \tch=%d rssi=%d", ap_list[i].ssid, ap_list[i].primary, ap_list[i].rssi);
         cJSON_AddItemToArray(js, ap_record_to_json(&ap_list[i]));
     }
     return js;

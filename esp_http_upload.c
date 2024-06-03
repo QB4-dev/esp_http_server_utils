@@ -72,7 +72,7 @@ int esp_http_upload_check_initial_boundary(httpd_req_t *req, char *boundary, siz
     char buf[BOUNDARY_LEN] = { 0 };
     ssize_t boundary_len = strlen(boundary);
     uint32_t bytes_read = 0;
-    int32_t recv;
+    int recv;
 
     if (bytes_left < boundary_len)
         return -1;
@@ -82,7 +82,7 @@ int esp_http_upload_check_initial_boundary(httpd_req_t *req, char *boundary, siz
         if (recv < 0) {
             if (recv == HTTPD_SOCK_ERR_TIMEOUT)
                 continue;
-            ESP_LOGE(TAG, "httpd_req_recv error: err=0x%d", recv);
+            ESP_LOGE(TAG, "httpd_req_recv error: err=0x%x", recv);
             return -1;
         }
         bytes_read += recv;
@@ -104,7 +104,7 @@ int esp_http_upload_find_multipart_header_end(httpd_req_t *req, size_t bytes_lef
     const char seq[] = "\r\n\r\n";
     char buf[4] = { 0 };
     uint32_t bytes_read = 0;
-    int32_t recv;
+    int recv;
     uint8_t match = 0;
 
     //read byte by byte to find CRLF CRLF sequence
@@ -114,7 +114,7 @@ int esp_http_upload_find_multipart_header_end(httpd_req_t *req, size_t bytes_lef
             // Retry receive if timeout occurred
             if (recv == HTTPD_SOCK_ERR_TIMEOUT)
                 continue;
-            ESP_LOGE(TAG, "httpd_req_recv error: err=0x%d", recv);
+            ESP_LOGE(TAG, "httpd_req_recv error: err=0x%x", recv);
             return -1;
         }
         bytes_read += recv;
@@ -137,7 +137,7 @@ int esp_http_upload_check_final_boundary(httpd_req_t *req, char *boundary, size_
     char buf[BOUNDARY_LEN + 2] = { 0 }; //additional '--' at the end
     ssize_t boundary_len = strlen(boundary);
     uint32_t bytes_read = 0;
-    int32_t recv;
+    int recv;
 
     while (bytes_left > 0) {
         recv = httpd_req_recv(req, buf, MIN(bytes_left, UPLOAD_BUF_LEN));

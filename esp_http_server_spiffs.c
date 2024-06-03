@@ -14,6 +14,7 @@
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <inttypes.h>
 
 #include "include/esp_http_server_spiffs.h"
 #include "include/esp_http_server_misc.h"
@@ -149,7 +150,7 @@ esp_err_t esp_httpd_spiffs_file_upload_handler(httpd_req_t *req)
             // Retry receiving if timeout occurred
             if (recv == HTTPD_SOCK_ERR_TIMEOUT)
                 continue;
-            ESP_LOGE(TAG, "httpd_req_recv error: err=0x%d", recv);
+            ESP_LOGE(TAG, "httpd_req_recv error: err=0x%" PRIx32, recv);
             free(buf);
             fclose(f);
             return esp_http_upload_json_status(req, ESP_FAIL, bytes_written);
@@ -158,13 +159,13 @@ esp_err_t esp_httpd_spiffs_file_upload_handler(httpd_req_t *req)
 
         wr = fwrite((const void *)buf, recv, 1, f);
         if (wr != 1) {
-            ESP_LOGE(TAG, "spiffs write error: err=0x%d", wr);
+            ESP_LOGE(TAG, "spiffs write error: err=0x%x", wr);
             free(buf);
             fclose(f);
             return esp_http_upload_json_status(req, ESP_FAIL, bytes_written);
         }
         bytes_written += recv;
-        ESP_LOGI(TAG, "file upload %d/%d bytes", bytes_written, binary_size);
+        ESP_LOGI(TAG, "file upload %" PRId32 "/%" PRId32 "bytes", bytes_written, binary_size);
     }
     free(buf);
     fclose(f);
@@ -175,7 +176,7 @@ esp_err_t esp_httpd_spiffs_file_upload_handler(httpd_req_t *req)
     else
         return esp_http_upload_json_status(req, ESP_FAIL, bytes_written);
 
-    ESP_LOGI(TAG, "%d file bytes uploaded OK", bytes_written);
+    ESP_LOGI(TAG, "%" PRIu32 " file bytes uploaded OK", bytes_written);
     return esp_http_upload_json_status(req, ESP_OK, bytes_written);
 }
 
@@ -199,8 +200,7 @@ esp_err_t esp_httpd_spiffs_image_upload_handler(httpd_req_t *req)
     }
 
     const esp_partition_t *spiffs_part;
-    spiffs_part =
-        esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_SPIFFS, label);
+    spiffs_part = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_SPIFFS, label);
     if (!spiffs_part) {
         ESP_LOGE(TAG, "partition %s not found", label);
         return esp_http_upload_json_status(req, ESP_ERR_NOT_FOUND, 0);
@@ -230,11 +230,11 @@ esp_err_t esp_httpd_spiffs_image_upload_handler(httpd_req_t *req)
         return esp_http_upload_json_status(req, ESP_ERR_INVALID_ARG, 0);
 
     //now we have content data until end boundary
-    ssize_t boundary_len = strlen(boundary);
-    ssize_t final_boundary_len = boundary_len + 2;                // additional "--"
-    uint32_t binary_size = bytes_left - (final_boundary_len + 4); //CRLF CRLF
-    uint32_t bytes_written = 0;
-    uint32_t to_read;
+    size_t boundary_len = strlen(boundary);
+    size_t final_boundary_len = boundary_len + 2;               // additional "--"
+    size_t binary_size = bytes_left - (final_boundary_len + 4); //CRLF CRLF
+    size_t bytes_written = 0;
+    size_t to_read;
     int32_t recv;
 
     if (binary_size == 0) {
@@ -254,7 +254,7 @@ esp_err_t esp_httpd_spiffs_image_upload_handler(httpd_req_t *req)
 
     rc = esp_partition_erase_range(spiffs_part, 0, spiffs_part->size);
     if (rc != ESP_OK) {
-        ESP_LOGE(TAG, "partition erase failed: err=0x%d", rc);
+        ESP_LOGE(TAG, "partition erase failed: err=0x%x", rc);
         return esp_http_upload_json_status(req, ESP_FAIL, 0);
     }
 
@@ -274,7 +274,7 @@ esp_err_t esp_httpd_spiffs_image_upload_handler(httpd_req_t *req)
             // Retry receiving if timeout occurred
             if (recv == HTTPD_SOCK_ERR_TIMEOUT)
                 continue;
-            ESP_LOGE(TAG, "httpd_req_recv error: err=0x%d", recv);
+            ESP_LOGE(TAG, "httpd_req_recv error: err=0x%" PRIx32, recv);
             free(buf);
             return esp_http_upload_json_status(req, ESP_FAIL, bytes_written);
         }
@@ -282,7 +282,7 @@ esp_err_t esp_httpd_spiffs_image_upload_handler(httpd_req_t *req)
 
         rc = esp_partition_write(spiffs_part, bytes_written, (const void *)buf, recv);
         if (rc != ESP_OK) {
-            ESP_LOGE(TAG, "image write error: err=0x%d", rc);
+            ESP_LOGE(TAG, "image write error: err=0x%x", rc);
             free(buf);
             return esp_http_upload_json_status(req, rc, bytes_written);
         }
@@ -300,7 +300,7 @@ esp_err_t esp_httpd_spiffs_image_upload_handler(httpd_req_t *req)
     ESP_LOGI(TAG, "image upload complete %d bytes uploaded OK", bytes_written);
     rc = esp_vfs_spiffs_register(esp_vfs_spiffs_conf);
     if (rc != ESP_OK) {
-        ESP_LOGE(TAG, "esp_vfs_spiffs_register error: err=0x%d", rc);
+        ESP_LOGE(TAG, "esp_vfs_spiffs_register error: err=0x%x", rc);
         return esp_http_upload_json_status(req, rc, bytes_written);
     }
     ESP_LOGI(TAG, "esp_vfs_spiffs registered OK");

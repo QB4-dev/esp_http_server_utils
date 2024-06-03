@@ -10,6 +10,7 @@
 #include <esp_image_format.h>
 #include <esp_log.h>
 #include <sys/param.h>
+#include <inttypes.h>
 
 #include "include/esp_http_server_fota.h"
 #include "include/esp_http_server_misc.h"
@@ -37,6 +38,7 @@ static void handle_ota_failed_action(esp_ota_actions_t *ota_actions)
         ota_actions->on_update_failed(ota_actions->arg);
 }
 
+#ifdef CONFIG_APP_UPDATE_CHECK_PROJECT_NAME
 static esp_err_t esp_httpd_fota_get_partition_descr(const esp_partition_t *part, esp_app_desc_t *descr)
 {
     esp_image_header_t esp_image_header;
@@ -86,6 +88,7 @@ static esp_err_t esp_httpd_fota_get_partition_descr(const esp_partition_t *part,
     }
     return ESP_ERR_NOT_FOUND;
 }
+#endif
 
 esp_err_t esp_httpd_fota_handler(httpd_req_t *req)
 {
@@ -127,12 +130,12 @@ esp_err_t esp_httpd_fota_handler(httpd_req_t *req)
     }
 
     //now we have content data until end boundary with additional '--' at the end
-    ssize_t boundary_len = strlen(boundary);
-    ssize_t final_boundary_len = boundary_len + 2;                // additional "--"
-    uint32_t binary_size = bytes_left - (final_boundary_len + 4); // CRLF CRLF
-    uint32_t bytes_written = 0;
-    uint32_t to_read;
-    int32_t recv;
+    size_t boundary_len = strlen(boundary);
+    size_t final_boundary_len = boundary_len + 2;               // additional "--"
+    size_t binary_size = bytes_left - (final_boundary_len + 4); // CRLF CRLF
+    size_t bytes_written = 0;
+    size_t to_read;
+    int recv;
 
     if (binary_size == 0) {
         ESP_LOGE(TAG, "no file uploaded");
@@ -147,7 +150,7 @@ esp_err_t esp_httpd_fota_handler(httpd_req_t *req)
         handle_ota_failed_action(ota_actions);
         return esp_http_upload_json_status(req, ESP_FAIL, 0);
     }
-    ESP_LOGD(TAG, "write partition %s typ %d sub %d at offset 0x%x", update_partition->label, update_partition->type,
+    ESP_LOGD(TAG, "write partition %s typ %d sub %d at offset 0x%" PRIx32, update_partition->label, update_partition->type,
              update_partition->subtype, update_partition->address);
 
     ota_err = esp_ota_begin(update_partition, OTA_SIZE_UNKNOWN, &update_handle);
@@ -253,7 +256,7 @@ esp_err_t esp_httpd_fota_handler(httpd_req_t *req)
         ESP_LOGI(TAG, "reboot skipped");
     } else {
         ESP_LOGI(TAG, "esp reboot..");
-        vTaskDelay(1000 / portTICK_RATE_MS); //let esp send response before reboot
+        vTaskDelay(1000 / portTICK_PERIOD_MS); //let esp send response before reboot
         esp_restart();
     }
     return ESP_OK;

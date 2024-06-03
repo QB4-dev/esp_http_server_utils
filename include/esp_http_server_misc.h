@@ -14,6 +14,31 @@
 extern "C" {
 #endif
 
+#if CONFIG_IDF_TARGET_ESP8266
+
+#define DECLARE_EMBED_HANDLER(NAME, URI, CT)                             \
+    extern const char embed_##NAME[] asm("_binary_" #NAME "_start");     \
+    extern const char size_##NAME[] asm("_binary_" #NAME "_size");       \
+    esp_err_t get_##NAME(httpd_req_t *req)                               \
+    {                                                                    \
+        httpd_resp_set_type(req, CT);                                    \
+        return httpd_resp_send(req, embed_##NAME, (size_t)&size_##NAME); \
+    }                                                                    \
+    static const httpd_uri_t route_get_##NAME = { .uri = (URI), .method = HTTP_GET, .handler = get_##NAME }
+
+#elif CONFIG_IDF_TARGET_ESP32
+
+#define DECLARE_EMBED_HANDLER(NAME, URI, CT)                         \
+    extern const char embed_##NAME[] asm("_binary_" #NAME "_start"); \
+    extern const size_t size_##NAME asm(#NAME "_length");            \
+    esp_err_t get_##NAME(httpd_req_t *req)                           \
+    {                                                                \
+        httpd_resp_set_type(req, CT);                                \
+        return httpd_resp_send(req, embed_##NAME, size_##NAME);      \
+    }                                                                \
+    static const httpd_uri_t route_get_##NAME = { .uri = (URI), .method = HTTP_GET, .handler = get_##NAME }
+#endif
+
 #define CHECK_ARG(VAL)                  \
     do {                                \
         if (!(VAL))                     \
