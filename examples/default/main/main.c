@@ -20,7 +20,7 @@
 #include <esp_http_server_fota.h>
 #include <esp_http_server_wifi.h>
 
-#if CONFIG_IDF_TARGET_ESP32
+#ifndef CONFIG_IDF_TARGET_ESP8266
 #include <esp_mac.h>
 #endif
 
@@ -30,7 +30,7 @@ static httpd_handle_t server = NULL;
 
 #if CONFIG_IDF_TARGET_ESP8266
 #define ESP_WIFI_AP_SSID "ESP8266-AP"
-#elif CONFIG_IDF_TARGET_ESP32
+#else //ESP32xx
 #define ESP_WIFI_AP_SSID "ESP32-AP"
 #endif
 
@@ -123,7 +123,7 @@ static esp_err_t wifi_init_softap(void)
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-#if CONFIG_IDF_TARGET_ESP32
+#ifndef CONFIG_IDF_TARGET_ESP8266
     esp_netif_create_default_wifi_ap();
     esp_netif_create_default_wifi_sta();
 #endif

@@ -26,7 +26,7 @@ extern "C" {
     }                                                                    \
     static const httpd_uri_t route_get_##NAME = { .uri = (URI), .method = HTTP_GET, .handler = get_##NAME }
 
-#elif CONFIG_IDF_TARGET_ESP32
+#else
 
 #define DECLARE_EMBED_HANDLER(NAME, URI, CT)                         \
     extern const char embed_##NAME[] asm("_binary_" #NAME "_start"); \
