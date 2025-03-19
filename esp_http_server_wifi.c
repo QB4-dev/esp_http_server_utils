@@ -11,13 +11,13 @@
 #include <esp_netif.h>
 #include <sys/param.h>
 
-#if CONFIG_IDF_TARGET_ESP32
-#include <esp_mac.h>
+#ifndef CONFIG_IDF_TARGET_ESP8266
+#include <esp_mac.h> //ESP-IDF
 #endif
 
 #if CONFIG_IDF_TARGET_ESP8266
 #define esp_ip_info_t tcpip_adapter_ip_info_t
-#elif CONFIG_IDF_TARGET_ESP32
+#else //ESP32xx
 #define esp_ip_info_t esp_netif_ip_info_t
 #endif
 
@@ -75,7 +75,7 @@ static cJSON *get_wifi_ap_info(void)
     if (tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_AP, &ip_info) == ESP_OK)
         cJSON_AddItemToObject(js, "ip_info", ip_info_to_json(&ip_info));
 
-#elif CONFIG_IDF_TARGET_ESP32
+#else //ESP32xx
     esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_AP_DEF");
 
     if (esp_netif_get_ip_info(netif, &ip_info) == ESP_OK)
@@ -96,9 +96,8 @@ static cJSON *get_wifi_sta_info(void)
 #if CONFIG_IDF_TARGET_ESP8266
     if (tcpip_adapter_get_ip_info(TCPIP_ADAPTER_IF_STA, &ip_info) == ESP_OK)
         cJSON_AddItemToObject(js, "ip_info", ip_info_to_json(&ip_info));
-#elif CONFIG_IDF_TARGET_ESP32
+#else //ESP32xx
     esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
-
     if (esp_netif_get_ip_info(netif, &ip_info) == ESP_OK)
         cJSON_AddItemToObject(js, "ip_info", ip_info_to_json(&ip_info));
 #endif
