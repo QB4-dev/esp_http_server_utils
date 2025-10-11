@@ -145,7 +145,6 @@ static cJSON *wifi_config_to_json(void)
 static cJSON *wifi_scan_to_json(void)
 {
     uint16_t ap_num = DEFAULT_SCAN_LIST_SIZE;
-    uint16_t ap_found = 0;
     wifi_ap_record_t ap_list[DEFAULT_SCAN_LIST_SIZE] = { 0 };
     wifi_ap_record_t ap_info = { 0 };
     bool connected;
@@ -155,7 +154,6 @@ static cJSON *wifi_scan_to_json(void)
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_disconnect());
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_scan_start(NULL, true));
     esp_wifi_scan_get_ap_records(&ap_num, ap_list);
-    esp_wifi_scan_get_ap_num(&ap_found);
 
     if (connected) {
         /* reconnect device if was connected before */
@@ -163,8 +161,8 @@ static cJSON *wifi_scan_to_json(void)
     }
 
     cJSON *js = cJSON_CreateArray();
-    ESP_LOGI(TAG, "APs scanned = %u", ap_found);
-    for (int i = 0; (i < DEFAULT_SCAN_LIST_SIZE) && (i < ap_found); i++) {
+    ESP_LOGI(TAG, "APs scanned = %u", ap_num);
+    for (int i = 0; (i < ap_num) && (i < DEFAULT_SCAN_LIST_SIZE); i++) {
         ESP_LOGI(TAG, "\tSSID: %s \tch=%d rssi=%d", ap_list[i].ssid, ap_list[i].primary, ap_list[i].rssi);
         cJSON_AddItemToArray(js, ap_record_to_json(&ap_list[i]));
     }
