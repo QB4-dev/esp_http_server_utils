@@ -16,6 +16,10 @@
 #include "include/esp_http_server_misc.h"
 #include "esp_http_upload.h"
 
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 4, 0)
+#define esp_ota_get_app_description esp_app_get_description
+#endif
+
 static const char *TAG = "FOTA";
 
 esp_err_t esp_httpd_app_info_handler(httpd_req_t *req)
@@ -176,6 +180,7 @@ esp_err_t esp_httpd_fota_handler(httpd_req_t *req)
         else
             to_read = bytes_left - (final_boundary_len + 4);
 
+        vTaskDelay(10); //yield to other tasks
         recv = httpd_req_recv(req, buf, to_read);
         if (recv < 0) {
             // Retry receiving if timeout occurred
@@ -196,7 +201,7 @@ esp_err_t esp_httpd_fota_handler(httpd_req_t *req)
             return esp_http_upload_json_status(req, ESP_FAIL, bytes_written);
         }
         bytes_written += recv;
-        ESP_LOGD(TAG, "firmware upload %d/%d bytes", bytes_written, binary_size);
+        ESP_LOGI(TAG, "firmware upload %d/%d bytes", bytes_written, binary_size);
     }
     free(buf);
 
