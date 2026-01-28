@@ -1,0 +1,17 @@
+version: 1.0.0
+description: ESP HTTPD utils for ESP-IDF/ESP8266_RTOS_SDK
+repository: https://github.com/QB4-dev/esp_http_server_utils
+url: https://github.com/QB4-dev/esp_http_server_utils
+documentation: https://github.com/QB4-dev/esp_http_server_utils/README.md
+issues: https://github.com/QB4-dev/esp_http_server_utils/issues
+license: GPL-3.0
+examples:
+  - path: examples/default
+tags:
+  - httpd
+  - utils
+  - fota
+  - spiffs
+dependencies:
+  idf: '>=4.0'
+
