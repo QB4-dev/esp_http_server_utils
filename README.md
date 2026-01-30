@@ -1,9 +1,10 @@
 # Component: ESP HTTP Server Utils
 
 Utilities and helpers for integrating the ESP-IDF HTTP server with common
-device features. This component provides small, focused handlers and helpers
-used by example applications in this repo: FOTA, SPIFFS file serving, Wi-Fi
-helpers, and upload handling.
+device features. This component provides handlers  for:
+- Wi-Fi connection management
+- FOTA(Firmware Over The Air) 
+- SPIFFS files uploading.
 
 **Features**
 - Reusable HTTP handlers and helpers located in the component sources:
@@ -12,7 +13,6 @@ helpers, and upload handling.
 	- [esp_http_server_wifi.c](esp_http_server_wifi.c) — Wi‑Fi helper endpoints
 	- [esp_http_server_misc.c](esp_http_server_misc.c) — miscellaneous endpoints
 	- [esp_http_upload.c](esp_http_upload.c) — multi-part upload helpers
-- Small, dependency-free helpers that integrate with the ESP-IDF HTTP server
 - Example app demonstrating handler registration in `examples/default`
 
 ## Quick start
