@@ -200,10 +200,10 @@ static esp_err_t wifi_handle_connect_req(httpd_req_t *req)
         }
 
         if (httpd_query_key_value(req_data, "ssid", value, sizeof(value)) == ESP_OK)
-            strncpy((char *)wifi_config.sta.ssid, value, 32);
+            memcpy(wifi_config.sta.ssid, value, sizeof(wifi_config.sta.ssid) - 1);
 
         if (httpd_query_key_value(req_data, "passwd", value, sizeof(value)) == ESP_OK)
-            strncpy((char *)wifi_config.sta.password, value, 64);
+            memcpy(wifi_config.sta.password, value, sizeof(wifi_config.sta.password) - 1);
         free(req_data);
 
         esp_wifi_disconnect();
