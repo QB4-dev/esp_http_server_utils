@@ -1,4 +1,4 @@
-version: 1.0.0
+version: 1.0.1
 description: ESP HTTPD utils for ESP-IDF/ESP8266_RTOS_SDK
 repository: https://github.com/QB4-dev/esp_http_server_utils
 url: https://github.com/QB4-dev/esp_http_server_utils
