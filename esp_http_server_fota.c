@@ -21,6 +21,7 @@
 #endif
 
 static const char *TAG = "FOTA";
+static const int OTA_RECV_TIMEOUT_RETRIES = 3;
 
 esp_err_t esp_httpd_app_info_handler(httpd_req_t *req)
 {
@@ -140,6 +141,7 @@ esp_err_t esp_httpd_fota_handler(httpd_req_t *req)
     size_t bytes_written = 0;
     size_t to_read;
     int recv;
+    int timeout_retries = 0;
 
     if (binary_size == 0) {
         ESP_LOGE(TAG, "no file uploaded");
@@ -154,7 +156,7 @@ esp_err_t esp_httpd_fota_handler(httpd_req_t *req)
         handle_ota_failed_action(ota_actions);
         return esp_http_upload_json_status(req, ESP_FAIL, 0);
     }
-    ESP_LOGD(TAG, "write partition %s typ %d sub %d at offset 0x%" PRIx32, update_partition->label, update_partition->type,
+    ESP_LOGI(TAG, "write partition %s typ %d sub %d at offset 0x%" PRIx32, update_partition->label, update_partition->type,
              update_partition->subtype, update_partition->address);
 
     ota_err = esp_ota_begin(update_partition, OTA_SIZE_UNKNOWN, &update_handle);
@@ -180,17 +182,31 @@ esp_err_t esp_httpd_fota_handler(httpd_req_t *req)
         else
             to_read = bytes_left - (final_boundary_len + 4);
 
-        vTaskDelay(10); //yield to other tasks
+        vTaskDelay(pdMS_TO_TICKS(10)); //yield to other tasks
         recv = httpd_req_recv(req, buf, to_read);
         if (recv < 0) {
             // Retry receiving if timeout occurred
-            if (recv == HTTPD_SOCK_ERR_TIMEOUT)
-                continue;
+            if (recv == HTTPD_SOCK_ERR_TIMEOUT) {
+                if (++timeout_retries < OTA_RECV_TIMEOUT_RETRIES)
+                    continue;
+
+                ESP_LOGE(TAG, "httpd_req_recv timed out after %d retries", OTA_RECV_TIMEOUT_RETRIES);
+                free(buf);
+                handle_ota_failed_action(ota_actions);
+                return esp_http_upload_json_status(req, ESP_FAIL, bytes_written);
+            }
             free(buf);
             ESP_LOGE(TAG, "httpd_req_recv error: err=0x%x", recv);
             handle_ota_failed_action(ota_actions);
             return esp_http_upload_json_status(req, ESP_FAIL, bytes_written);
         }
+        if (recv == 0) {
+            ESP_LOGE(TAG, "httpd_req_recv returned 0, client disconnected");
+            free(buf);
+            handle_ota_failed_action(ota_actions);
+            return esp_http_upload_json_status(req, ESP_FAIL, bytes_written);
+        }
+        timeout_retries = 0;
         bytes_left -= recv;
 
         ota_err = esp_ota_write(update_handle, (const void *)buf, recv);
