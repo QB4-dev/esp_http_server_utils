@@ -11,6 +11,15 @@
 #include <esp_netif.h>
 #include <sys/param.h>
 
+/* For esp-idf backward compatibility */
+#ifndef ESP_IF_WIFI_AP
+#define ESP_IF_WIFI_AP WIFI_IF_AP
+#endif
+
+#ifndef ESP_IF_WIFI_STA
+#define ESP_IF_WIFI_STA WIFI_IF_STA
+#endif
+
 #ifndef CONFIG_IDF_TARGET_ESP8266
 #include <esp_mac.h> //ESP-IDF
 #endif
