@@ -15,4 +15,4 @@ tags:
 - fota
 - spiffs
 url: https://github.com/QB4-dev/esp_http_server_utils
-version: 1.0.3
+version: 1.0.4
