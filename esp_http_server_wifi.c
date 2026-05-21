@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
+#include <esp_idf_version.h>
 #include <esp_http_server.h>
 #include <esp_system.h>
 #include <esp_log.h>
@@ -12,11 +13,8 @@
 #include <sys/param.h>
 
 /* For esp-idf backward compatibility */
-#ifndef ESP_IF_WIFI_AP
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(6, 0, 0)
 #define ESP_IF_WIFI_AP WIFI_IF_AP
-#endif
-
-#ifndef ESP_IF_WIFI_STA
 #define ESP_IF_WIFI_STA WIFI_IF_STA
 #endif
 
