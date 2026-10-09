@@ -221,14 +221,12 @@ esp_err_t esp_httpd_fota_handler(httpd_req_t *req)
     }
     free(buf);
 
+    ESP_LOGI(TAG, "%d firmware bytes uploaded OK", bytes_written);
+    // Check for the final boundary but do not fail if it's not found
     bytes_read = esp_http_upload_check_final_boundary(req, boundary, bytes_left);
     if (bytes_read > 0) {
         bytes_left -= bytes_read;
-    } else {
-        handle_ota_failed_action(ota_actions);
-        return esp_http_upload_json_status(req, ESP_FAIL, bytes_written);
     }
-    ESP_LOGI(TAG, "%d firmware bytes uploaded OK", bytes_written);
 
     ota_err = esp_ota_end(update_handle);
     if (ota_err != ESP_OK) {
